@@ -31,13 +31,17 @@ data/*.db
 data/
 !data/.gitkeep
 
+# Environment variables
+.env
+backend/.env
+frontend/.env
+frontend/.env.local
+frontend/.env.*.local
+
 # Frontend
 frontend/node_modules/
 frontend/dist/
 frontend/.vite/
-frontend/.env
-frontend/.env.local
-frontend/.env.*.local
 
 # Logs
 *.log

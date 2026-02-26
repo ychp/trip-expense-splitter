@@ -1,46 +1,53 @@
 <template>
-  <div class="categories">
-    <div class="page-header">
-      <h2>
-        <el-icon :size="28" style="margin-right: 12px; color: var(--primary-color)"><Grid /></el-icon>
+  <div class="p-0">
+    <div class="mb-6">
+      <h2 class="text-2xl font-semibold text-foreground flex items-center">
+        <el-icon :size="28" class="mr-3 text-primary"><Grid /></el-icon>
         分类管理
       </h2>
     </div>
     
-    <el-button type="primary" size="large" @click="showAddDialog" class="add-btn">
-      <el-icon style="margin-right: 8px"><Plus /></el-icon>
-      添加分类
-    </el-button>
-
-    <el-row :gutter="20" class="categories-grid">
-      <el-col :span="8" v-for="category in tableData" :key="category.id">
-        <div class="category-card" :class="category.type === 'income' ? 'income-card' : 'expense-card'">
-          <div class="category-header">
-            <div class="category-icon">
-              <component :is="getCategoryIcon(category)" :size="32" />
+    <div class="bg-card rounded-xl border border-border shadow-sm">
+      <div class="p-4 border-b border-border flex justify-between items-center">
+        <el-button type="primary" size="default" @click="showAddDialog">
+          <el-icon class="mr-2"><Plus /></el-icon>
+          添加分类
+        </el-button>
+      </div>
+      
+      <el-table :data="tableData" stripe style="width: 100%">
+        <el-table-column label="图标" width="100">
+          <template #default="{ row }">
+            <div class="category-icon-wrapper">
+              <component :is="getCategoryIcon(row)" :size="24" />
             </div>
-            <div class="category-actions">
-              <el-button link type="primary" @click="handleEdit(category)">
-                <el-icon><Edit /></el-icon>
-              </el-button>
-              <el-button link type="danger" @click="handleDelete(category)">
-                <el-icon><Delete /></el-icon>
-              </el-button>
-            </div>
-          </div>
-          <div class="category-name">{{ category.name }}</div>
-          <div class="category-type">
-            <el-tag :type="category.type === 'income' ? 'success' : 'danger'" size="small">
-              {{ category.type === 'income' ? '收入' : '支出' }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="name" label="分类名称" min-width="150">
+          <template #default="{ row }">
+            <span class="font-medium">{{ row.name }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="type" label="类型" width="120">
+          <template #default="{ row }">
+            <el-tag :type="row.type === 'income' ? 'success' : 'danger'" size="default">
+              {{ row.type === 'income' ? '收入' : '支出' }}
             </el-tag>
-          </div>
-          <div class="category-order">
-            <span class="order-label">排序</span>
-            <span class="order-value">{{ category.sort_order }}</span>
-          </div>
-        </div>
-      </el-col>
-    </el-row>
+          </template>
+        </el-table-column>
+        <el-table-column prop="sort_order" label="排序" width="100" />
+        <el-table-column label="操作" width="150" fixed="right">
+          <template #default="{ row }">
+            <el-button link type="primary" @click="handleEdit(row)">
+              <el-icon><Edit /></el-icon>
+            </el-button>
+            <el-button link type="danger" @click="handleDelete(row)">
+              <el-icon><Delete /></el-icon>
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+    </div>
 
     <el-dialog
       v-model="dialogVisible"
@@ -58,13 +65,13 @@
           </el-radio-group>
         </el-form-item>
         <el-form-item label="排序" prop="sort_order">
-          <el-input-number v-model="form.sort_order" :min="0" style="width: 100%" size="large" />
+          <el-input-number v-model="form.sort_order" :min="0" class="w-full" size="large" />
         </el-form-item>
       </el-form>
       <template #footer>
         <el-button size="large" @click="dialogVisible = false">取消</el-button>
         <el-button type="primary" size="large" @click="handleSubmit">
-          <el-icon style="margin-right: 6px"><Check /></el-icon>
+          <el-icon class="mr-1.5"><Check /></el-icon>
           确定
         </el-button>
       </template>
@@ -208,121 +215,13 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.categories {
-  padding: 0;
-}
-
-.page-header {
-  margin-bottom: 24px;
-}
-
-.add-btn {
-  margin-bottom: 24px;
-}
-
-.categories-grid {
-  margin-top: 20px;
-}
-
-.category-card {
-  background: #fff;
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: var(--shadow-sm);
-  transition: all 0.3s ease;
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
-}
-
-.category-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-}
-
-.category-card.income-card::before {
-  background: linear-gradient(90deg, #10b981, #34d399);
-}
-
-.category-card.expense-card::before {
-  background: linear-gradient(90deg, #f093fb, #f5576c);
-}
-
-.category-card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-lg);
-}
-
-.category-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.category-icon {
-  width: 56px;
-  height: 56px;
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-}
-
-.income-card .category-icon {
-  background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
-}
-
-.expense-card .category-icon {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-}
-
-.category-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.category-actions .el-button {
-  font-size: 18px;
-}
-
-.category-name {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 8px;
-}
-
-.category-type {
-  margin-bottom: 12px;
-}
-
-.category-order {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-top: 12px;
-  border-top: 1px solid var(--border-color);
-}
-
-.order-label {
-  font-size: 13px;
-  color: var(--text-secondary);
-}
-
-.order-value {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--primary-color);
+.category-icon-wrapper {
+  @apply w-10 h-10 rounded-lg flex items-center justify-center;
+  background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(199 80% 55%) 100%);
+  color: white;
 }
 
 :deep(.el-radio.is-bordered) {
-  border-radius: 10px;
-  padding: 12px 20px;
+  @apply rounded-xl py-3 px-5;
 }
 </style>

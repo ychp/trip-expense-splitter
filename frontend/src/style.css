@@ -1,0 +1,189 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --primary: 199 89% 48%;
+    --primary-foreground: 0 0% 100%;
+    --background: 195 10% 97%;
+    --foreground: 195 10% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 195 10% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 195 10% 15%;
+    --secondary: 195 5% 92%;
+    --secondary-foreground: 195 8% 20%;
+    --muted: 195 5% 94%;
+    --muted-foreground: 195 5% 45%;
+    --accent: 195 6% 94%;
+    --accent-foreground: 195 8% 20%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 195 6% 90%;
+    --input: 195 6% 91%;
+    --ring: 199 89% 48%;
+    --radius: 0.625rem;
+    --chart-1: 199 85% 55%;
+    --chart-2: 175 75% 45%;
+    --chart-3: 45 85% 55%;
+    --chart-4: 240 70% 55%;
+    --chart-5: 280 70% 55%;
+  }
+
+  * {
+    @apply m-0 p-0 box-border;
+  }
+  
+  body {
+    @apply font-sans antialiased;
+    color: hsl(var(--foreground));
+    background-color: hsl(var(--background));
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: -1;
+    background-image: 
+      radial-gradient(circle at 20% 40%, rgba(56, 189, 248, 0.04) 0%, transparent 30%),
+      radial-gradient(circle at 80% 20%, rgba(125, 211, 252, 0.04) 0%, transparent 30%),
+      radial-gradient(circle at 40% 80%, rgba(186, 230, 253, 0.03) 0%, transparent 30%),
+      radial-gradient(circle at 90% 70%, rgba(14, 165, 233, 0.03) 0%, transparent 25%);
+    pointer-events: none;
+  }
+}
+
+@layer components {
+  .el-card {
+    @apply rounded-xl border shadow-sm transition-shadow hover:shadow-md;
+    border-color: hsl(var(--border));
+    background-color: hsl(var(--card));
+  }
+  
+  .el-card__header {
+    @apply px-6 py-4 border-b bg-gradient-to-r from-sky-50 to-blue-50 font-semibold;
+    border-color: hsl(var(--border));
+    color: hsl(var(--foreground));
+  }
+  
+  .el-button--primary {
+    @apply border-none rounded-xl px-5 py-2.5 font-medium shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md;
+    background-color: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+  }
+  
+  .el-button--primary:hover {
+    opacity: 0.9;
+  }
+  
+  .el-button--success {
+    @apply bg-emerald-500 border-none rounded-xl px-5 py-2.5 font-medium text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md hover:bg-emerald-600;
+  }
+  
+  .el-button--danger {
+    @apply border-none rounded-xl px-5 py-2.5 font-medium shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md;
+    background-color: hsl(var(--destructive));
+    color: hsl(var(--destructive-foreground));
+  }
+  
+  .el-button--danger:hover {
+    opacity: 0.9;
+  }
+  
+  .el-input__wrapper,
+  .el-select .el-input__wrapper,
+  .el-date-editor .el-input__wrapper {
+    @apply rounded-xl shadow-sm transition-all hover:shadow-md focus-within:ring-2;
+    border-color: hsl(var(--border));
+    background-color: hsl(var(--background));
+  }
+  
+  .el-input__wrapper:hover,
+  .el-select .el-input__wrapper:hover,
+  .el-date-editor .el-input__wrapper:hover {
+    border-color: hsl(var(--primary));
+  }
+  
+  .el-input__wrapper:focus-within,
+  .el-select .el-input__wrapper:focus-within,
+  .el-date-editor .el-input__wrapper:focus-within {
+    border-color: hsl(var(--primary));
+    --tw-ring-color: hsl(var(--ring) / 0.2);
+  }
+  
+  .el-table {
+    @apply rounded-xl overflow-hidden border;
+    border-color: hsl(var(--border));
+  }
+  
+  .el-table th.el-table__cell {
+    @apply bg-gradient-to-r from-sky-50 to-blue-50 font-semibold text-sm;
+    color: hsl(var(--foreground));
+    border-color: hsl(var(--border));
+  }
+  
+  .el-table__row:hover td {
+    background-color: hsl(var(--accent) / 0.5);
+  }
+  
+  .el-dialog {
+    @apply rounded-2xl overflow-hidden shadow-2xl;
+  }
+  
+  .el-dialog__header {
+    @apply px-7 py-5 bg-gradient-to-r from-sky-50 to-blue-50 border-b;
+    color: hsl(var(--foreground));
+    border-color: hsl(var(--border));
+  }
+  
+  .el-dialog__title {
+    @apply text-lg font-semibold;
+  }
+  
+  .el-dialog__body {
+    @apply p-7;
+  }
+  
+  .el-tag--success {
+    @apply bg-emerald-50 text-emerald-600 border-emerald-200 rounded-lg px-3 py-1;
+  }
+  
+  .dark .el-tag--success {
+    @apply bg-emerald-900/30 text-emerald-400 border-emerald-800;
+  }
+  
+  .el-tag--danger {
+    @apply bg-red-50 text-red-600 border-red-200 rounded-lg px-3 py-1;
+  }
+  
+  .dark .el-tag--danger {
+    @apply bg-red-900/30 text-red-400 border-red-800;
+  }
+  
+  .el-form-item__label {
+    font-weight: 500;
+    color: hsl(var(--foreground));
+  }
+  
+  .el-radio.is-bordered {
+    @apply rounded-xl py-3 px-5;
+    border-color: hsl(var(--border));
+    background-color: hsl(var(--card));
+  }
+  
+  .el-radio.is-bordered:hover {
+    border-color: hsl(var(--primary));
+    background-color: hsl(var(--card));
+  }
+  
+  .el-radio.is-bordered.is-checked {
+    border-color: hsl(var(--primary));
+    background-color: hsl(var(--primary) / 0.1);
+    color: hsl(var(--primary));
+  }
+}

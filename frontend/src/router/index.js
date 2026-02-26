@@ -3,7 +3,18 @@ import { createRouter, createWebHistory } from 'vue-router'
 const routes = [
   {
     path: '/',
-    redirect: '/transactions'
+    name: 'Dashboard',
+    component: () => import('../views/Dashboard.vue')
+  },
+  {
+    path: '/trips',
+    name: 'Trips',
+    component: () => import('../views/Trips.vue')
+  },
+  {
+    path: '/trips/:id',
+    name: 'TripDetail',
+    component: () => import('../views/TripDetail.vue')
   },
   {
     path: '/transactions',
@@ -16,9 +27,9 @@ const routes = [
     component: () => import('../views/Statistics.vue')
   },
   {
-    path: '/accounts',
-    name: 'Accounts',
-    component: () => import('../views/Accounts.vue')
+    path: '/wallets',
+    name: 'Wallets',
+    component: () => import('../views/Wallets.vue')
   },
   {
     path: '/categories',

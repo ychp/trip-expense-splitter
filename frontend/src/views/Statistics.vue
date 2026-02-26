@@ -1,538 +1,230 @@
 <template>
-  <div class="statistics">
-    <div class="page-header">
-      <h2>
-        <el-icon :size="28" style="margin-right: 12px; color: var(--primary-color)"><DataAnalysis /></el-icon>
-        统计分析
-      </h2>
+  <div class="max-w-6xl mx-auto space-y-6">
+    <div>
+      <h1 class="text-2xl font-bold text-foreground">统计分析</h1>
+      <p class="text-muted-foreground mt-1">查看旅行支出人均对比和分类占比</p>
     </div>
-    
-    <el-card class="filter-card">
+
+    <el-card>
       <el-form :inline="true">
-        <el-form-item label="日期范围">
-          <el-date-picker
-            v-model="dateRange"
-            type="daterange"
-            range-separator="至"
-            start-placeholder="开始日期"
-            end-placeholder="结束日期"
-            value-format="YYYY-MM-DD"
-            style="width: 280px"
-          />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="fetchData">
-            <el-icon style="margin-right: 6px"><Search /></el-icon>
-            查询
-          </el-button>
+        <el-form-item label="行程">
+          <el-select v-model="selectedTripId" placeholder="选择行程" class="w-[200px]" @change="fetchStats">
+            <el-option v-for="trip in trips" :key="trip.id" :label="trip.name" :value="trip.id" />
+          </el-select>
         </el-form-item>
       </el-form>
     </el-card>
 
-    <el-row :gutter="20" class="summary-cards">
-      <el-col :span="8">
-        <div class="stat-card income-card">
-          <div class="card-icon">
-            <el-icon :size="48"><TrendCharts /></el-icon>
-          </div>
-          <div class="card-content">
-            <div class="label">总收入</div>
-            <div class="value">¥{{ summary.income }}</div>
-          </div>
-        </div>
-      </el-col>
-      <el-col :span="8">
-        <div class="stat-card expense-card">
-          <div class="card-icon">
-            <el-icon :size="48"><ShoppingCart /></el-icon>
-          </div>
-          <div class="card-content">
-            <div class="label">总支出</div>
-            <div class="value">¥{{ summary.expense }}</div>
-          </div>
-        </div>
-      </el-col>
-      <el-col :span="8">
-        <div class="stat-card balance-card">
-          <div class="card-icon">
-            <el-icon :size="48"><Wallet /></el-icon>
-          </div>
-          <div class="card-content">
-            <div class="label">结余</div>
-            <div class="value">¥{{ summary.balance }}</div>
-          </div>
-        </div>
-      </el-col>
-    </el-row>
+    <el-card v-if="!selectedTripId" class="text-center py-12">
+      <el-empty description="请选择一个行程查看统计" />
+    </el-card>
 
-    <el-row :gutter="20" class="charts-row">
-      <el-col :span="12">
-        <el-card class="chart-card">
-          <template #header>
-            <div class="card-header">
-              <el-icon style="margin-right: 8px"><PieChart /></el-icon>
-              <span>支出分类统计</span>
-            </div>
-          </template>
-          <div ref="expensePieChart" style="height: 320px"></div>
-        </el-card>
-      </el-col>
-      <el-col :span="12">
-        <el-card class="chart-card">
-          <template #header>
-            <div class="card-header">
-              <el-icon style="margin-right: 8px"><PieChart /></el-icon>
-              <span>收入分类统计</span>
-            </div>
-          </template>
-          <div ref="incomePieChart" style="height: 320px"></div>
-        </el-card>
-      </el-col>
-    </el-row>
+    <template v-else>
+      <div v-if="loading" class="text-center py-12">
+        <el-icon :size="32" class="is-loading"><Loading /></el-icon>
+      </div>
 
-    <el-row :gutter="20">
-      <el-col :span="24">
-        <el-card class="chart-card">
+      <div v-else-if="stats" class="space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <el-card class="text-center">
+            <div class="text-muted-foreground text-sm mb-2">总支出</div>
+            <div class="text-3xl font-bold text-red-500">¥{{ stats.total_expense }}</div>
+          </el-card>
+          <el-card class="text-center">
+            <div class="text-muted-foreground text-sm mb-2">人均支出</div>
+            <div class="text-3xl font-bold text-primary">¥{{ stats.average_expense }}</div>
+          </el-card>
+          <el-card class="text-center">
+            <div class="text-muted-foreground text-sm mb-2">参与人数</div>
+            <div class="text-3xl font-bold text-foreground">{{ stats.member_count }}人</div>
+          </el-card>
+        </div>
+
+        <el-card>
           <template #header>
-            <div class="card-header">
-              <el-icon style="margin-right: 8px"><LineChart /></el-icon>
-              <span>收支趋势</span>
-            </div>
+            <span class="font-semibold">人均支出对比</span>
           </template>
-          <div ref="trendChart" style="height: 320px"></div>
+          <div class="space-y-4">
+            <div v-for="member in stats.member_stats" :key="member.member_id" class="space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="font-medium">{{ member.member_name }}</span>
+                <div class="flex items-center space-x-4">
+                  <span class="text-lg font-bold" :class="getAmountClass(member.total_amount, stats.average_expense)">
+                    ¥{{ member.total_amount.toFixed(2) }}
+                  </span>
+                  <span class="text-sm text-muted-foreground">
+                    {{ getDiffText(member.total_amount, stats.average_expense) }}
+                  </span>
+                </div>
+              </div>
+              <el-progress 
+                :percentage="getPercentage(member.total_amount, stats.total_expense)" 
+                :color="getProgressColor(member.total_amount, stats.average_expense)"
+                :show-text="false"
+              />
+            </div>
+          </div>
         </el-card>
-      </el-col>
-    </el-row>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <el-card>
+            <template #header>
+              <span class="font-semibold">分类占比</span>
+            </template>
+            <div class="space-y-3">
+              <div v-for="(ratio, category) in stats.category_ratios" :key="category" class="space-y-1">
+                <div class="flex items-center justify-between text-sm">
+                  <span>{{ category }}</span>
+                  <span class="text-muted-foreground">{{ ratio }}%</span>
+                </div>
+                <el-progress 
+                  :percentage="ratio" 
+                  :show-text="false"
+                  :color="getCategoryColor(category)"
+                />
+              </div>
+            </div>
+          </el-card>
+
+          <el-card>
+            <template #header>
+              <span class="font-semibold">人均分类支出</span>
+            </template>
+            <div class="space-y-3">
+              <div v-for="member in stats.member_stats" :key="member.member_id">
+                <div class="font-medium mb-2">{{ member.member_name }}</div>
+                <div class="space-y-1 pl-4">
+                  <div v-for="(amount, category) in member.by_category" :key="category" class="flex items-center justify-between text-sm">
+                    <span class="text-muted-foreground">{{ category }}</span>
+                    <span>¥{{ amount.toFixed(2) }}</span>
+                  </div>
+                  <div v-if="Object.keys(member.by_category).length === 0" class="text-muted-foreground text-sm">无支出</div>
+                </div>
+              </div>
+            </div>
+          </el-card>
+        </div>
+
+        <el-card>
+          <template #header>
+            <span class="font-semibold">钱包使用情况</span>
+          </template>
+          <div v-if="walletSummary" class="space-y-3">
+            <div v-for="wallet in walletSummary.wallets" :key="wallet.wallet_id" class="p-4 border rounded-lg">
+              <div class="flex items-center justify-between mb-2">
+                <span class="font-medium">{{ wallet.wallet_name }}</span>
+                <span class="text-sm text-muted-foreground">{{ wallet.transaction_count }}笔交易</span>
+              </div>
+              <div class="grid grid-cols-3 gap-4 text-center">
+                <div>
+                  <div class="text-muted-foreground text-xs">余额</div>
+                  <div class="font-semibold">¥{{ wallet.balance }}</div>
+                </div>
+                <div>
+                  <div class="text-muted-foreground text-xs">已支出</div>
+                  <div class="font-semibold text-red-500">¥{{ wallet.total_spent }}</div>
+                </div>
+                <div>
+                  <div class="text-muted-foreground text-xs">剩余</div>
+                  <div class="font-semibold" :class="wallet.remaining < 0 ? 'text-red-500' : 'text-green-500'">¥{{ wallet.remaining }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </el-card>
+      </div>
+    </template>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import * as echarts from 'echarts'
-import { getSummary, getByCategory, getTrend } from '@/api/statistics'
+import axios from 'axios'
 
-const dateRange = ref([])
-const summary = reactive({
-  income: '0.00',
-  expense: '0.00',
-  balance: '0.00'
-})
+const trips = ref([])
+const selectedTripId = ref(null)
+const stats = ref(null)
+const walletSummary = ref(null)
+const loading = ref(false)
 
-const expensePieChart = ref(null)
-const incomePieChart = ref(null)
-const trendChart = ref(null)
-
-let expenseChart = null
-let incomeChart = null
-let trendChartInstance = null
-
-const fetchData = async () => {
+const fetchTrips = async () => {
   try {
-    const params = {
-      start_date: dateRange.value?.[0],
-      end_date: dateRange.value?.[1]
+    console.log('📡 Statistics: Fetching trips...')
+    const { data } = await axios.get('http://localhost:8000/api/trips/')
+    console.log('✅ Statistics: Trips received:', data)
+    trips.value = data
+    if (trips.value.length > 0) {
+      selectedTripId.value = trips.value[0].id
+      console.log('✅ Statistics: Selected trip:', selectedTripId.value)
+      // 手动调用fetchStats，因为@change事件不会在代码设置值时触发
+      await fetchStats()
     }
-    
-    const [summaryData, expenseData, incomeData, trendData] = await Promise.all([
-      getSummary(params),
-      getByCategory({ type: 'expense', ...params }),
-      getByCategory({ type: 'income', ...params }),
-      getTrend({ type: 'expense', ...params })
-    ])
-    
-    Object.assign(summary, summaryData)
-    
-    await nextTick()
-    renderExpensePie(expenseData)
-    renderIncomePie(incomeData)
-    renderTrend(trendData)
   } catch (error) {
+    console.error('❌ Statistics: 获取行程列表失败', error)
+    ElMessage.error('获取行程列表失败')
+  }
+}
+
+const fetchStats = async () => {
+  if (!selectedTripId.value) return
+  loading.value = true
+  try {
+    console.log('📡 Statistics: Fetching stats for trip:', selectedTripId.value)
+    const [statsRes, walletRes] = await Promise.all([
+      axios.get(`http://localhost:8000/api/stats/per-person/${selectedTripId.value}`),
+      axios.get(`http://localhost:8000/api/stats/wallet-summary/${selectedTripId.value}`)
+    ])
+    console.log('✅ Statistics: Stats data received:', statsRes.data)
+    console.log('✅ Statistics: Wallet summary received:', walletRes.data)
+    stats.value = statsRes.data
+    walletSummary.value = walletRes.data
+  } catch (error) {
+    console.error('❌ Statistics: 获取统计数据失败', error)
     ElMessage.error('获取统计数据失败')
+  } finally {
+    loading.value = false
   }
 }
 
-const renderExpensePie = (data) => {
-  if (!expensePieChart.value) return
-  
-  if (!expenseChart) {
-    expenseChart = echarts.init(expensePieChart.value)
-  }
-  
-  const colors = ['#667eea', '#764ba2', '#f093fb', '#4facfe', '#43e97b', '#fa709a', '#fee140', '#30cfd0', '#a8edea', '#fed6e3']
-  
-  const option = {
-    tooltip: {
-      trigger: 'item',
-      formatter: '{b}: ¥{c} ({d}%)',
-      backgroundColor: 'rgba(255, 255, 255, 0.95)',
-      borderColor: '#e2e8f0',
-      borderWidth: 1,
-      textStyle: {
-        color: '#1e293b'
-      }
-    },
-    legend: {
-      orient: 'vertical',
-      right: 10,
-      top: 'center',
-      textStyle: {
-        color: '#64748b'
-      }
-    },
-    series: [
-      {
-        type: 'pie',
-        radius: ['40%', '65%'],
-        center: ['35%', '50%'],
-        avoidLabelOverlap: false,
-        itemStyle: {
-          borderRadius: 10,
-          borderColor: '#fff',
-          borderWidth: 2
-        },
-        label: {
-          show: false,
-          position: 'center'
-        },
-        emphasis: {
-          label: {
-            show: true,
-            fontSize: 18,
-            fontWeight: 'bold',
-            color: '#1e293b'
-          },
-          itemStyle: {
-            shadowBlur: 15,
-            shadowOffsetX: 0,
-            shadowColor: 'rgba(0, 0, 0, 0.3)'
-          }
-        },
-        labelLine: {
-          show: false
-        },
-        data: data.map((item, index) => ({ 
-          value: item.amount, 
-          name: item.category,
-          itemStyle: {
-            color: colors[index % colors.length]
-          }
-        }))
-      }
-    ]
-  }
-  
-  expenseChart.setOption(option)
+const getAmountClass = (amount, average) => {
+  if (amount > average) return 'text-red-500'
+  if (amount < average) return 'text-green-500'
+  return 'text-foreground'
 }
 
-const renderIncomePie = (data) => {
-  if (!incomePieChart.value) return
-  
-  if (!incomeChart) {
-    incomeChart = echarts.init(incomePieChart.value)
-  }
-  
-  const colors = ['#10b981', '#34d399', '#6ee7b7', '#a7f3d0', '#d1fae5', '#059669', '#047857', '#065f46', '#064e3b', '#022c22']
-  
-  const option = {
-    tooltip: {
-      trigger: 'item',
-      formatter: '{b}: ¥{c} ({d}%)',
-      backgroundColor: 'rgba(255, 255, 255, 0.95)',
-      borderColor: '#e2e8f0',
-      borderWidth: 1,
-      textStyle: {
-        color: '#1e293b'
-      }
-    },
-    legend: {
-      orient: 'vertical',
-      right: 10,
-      top: 'center',
-      textStyle: {
-        color: '#64748b'
-      }
-    },
-    series: [
-      {
-        type: 'pie',
-        radius: ['40%', '65%'],
-        center: ['35%', '50%'],
-        avoidLabelOverlap: false,
-        itemStyle: {
-          borderRadius: 10,
-          borderColor: '#fff',
-          borderWidth: 2
-        },
-        label: {
-          show: false,
-          position: 'center'
-        },
-        emphasis: {
-          label: {
-            show: true,
-            fontSize: 18,
-            fontWeight: 'bold',
-            color: '#1e293b'
-          },
-          itemStyle: {
-            shadowBlur: 15,
-            shadowOffsetX: 0,
-            shadowColor: 'rgba(0, 0, 0, 0.3)'
-          }
-        },
-        labelLine: {
-          show: false
-        },
-        data: data.map((item, index) => ({ 
-          value: item.amount, 
-          name: item.category,
-          itemStyle: {
-            color: colors[index % colors.length]
-          }
-        }))
-      }
-    ]
-  }
-  
-  incomeChart.setOption(option)
+const getDiffText = (amount, average) => {
+  const diff = amount - average
+  if (Math.abs(diff) < 0.01) return '持平'
+  const sign = diff > 0 ? '+' : ''
+  return `${sign}${diff.toFixed(2)}`
 }
 
-const renderTrend = (data) => {
-  if (!trendChart.value) return
-  
-  if (!trendChartInstance) {
-    trendChartInstance = echarts.init(trendChart.value)
-  }
-  
-  const option = {
-    tooltip: {
-      trigger: 'axis',
-      formatter: '{b}<br />支出: ¥{c}',
-      backgroundColor: 'rgba(255, 255, 255, 0.95)',
-      borderColor: '#e2e8f0',
-      borderWidth: 1,
-      textStyle: {
-        color: '#1e293b'
-      }
-    },
-    grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '3%',
-      containLabel: true
-    },
-    xAxis: {
-      type: 'category',
-      data: data.map(item => item.month),
-      boundaryGap: false,
-      axisLine: {
-        lineStyle: {
-          color: '#e2e8f0'
-        }
-      },
-      axisLabel: {
-        color: '#64748b'
-      }
-    },
-    yAxis: {
-      type: 'value',
-      name: '金额',
-      nameTextStyle: {
-        color: '#64748b'
-      },
-      axisLine: {
-        lineStyle: {
-          color: '#e2e8f0'
-        }
-      },
-      axisLabel: {
-        color: '#64748b'
-      },
-      splitLine: {
-        lineStyle: {
-          color: '#f1f5f9',
-          type: 'dashed'
-        }
-      }
-    },
-    series: [
-      {
-        name: '支出',
-        type: 'line',
-        data: data.map(item => item.amount),
-        smooth: true,
-        symbol: 'circle',
-        symbolSize: 8,
-        lineStyle: {
-          width: 3,
-          color: {
-            type: 'linear',
-            x: 0,
-            y: 0,
-            x2: 1,
-            y2: 0,
-            colorStops: [
-              { offset: 0, color: '#667eea' },
-              { offset: 1, color: '#764ba2' }
-            ]
-          }
-        },
-        itemStyle: {
-          color: '#667eea',
-          borderColor: '#fff',
-          borderWidth: 2,
-          shadowColor: 'rgba(102, 126, 234, 0.5)',
-          shadowBlur: 10
-        },
-        areaStyle: {
-          color: {
-            type: 'linear',
-            x: 0,
-            y: 0,
-            x2: 0,
-            y2: 1,
-            colorStops: [
-              { offset: 0, color: 'rgba(102, 126, 234, 0.4)' },
-              { offset: 1, color: 'rgba(102, 126, 234, 0.05)' }
-            ]
-          }
-        }
-      }
-    ]
-  }
-  
-  trendChartInstance.setOption(option)
+const getPercentage = (amount, total) => {
+  if (total === 0) return 0
+  return Math.round((amount / total) * 100)
 }
 
-const handleResize = () => {
-  expenseChart?.resize()
-  incomeChart?.resize()
-  trendChartInstance?.resize()
+const getProgressColor = (amount, average) => {
+  if (amount > average) return '#f56565'
+  if (amount < average) return '#48bb78'
+  return '#0ea5e9'
+}
+
+const getCategoryColor = (category) => {
+  const colors = {
+    '交通费': '#3b82f6',
+    '住宿费': '#8b5cf6',
+    '餐饮费': '#f59e0b',
+    '门票费': '#10b981',
+    '购物费': '#ef4444',
+    '娱乐费': '#ec4899',
+    '其他': '#6b7280'
+  }
+  return colors[category] || '#6b7280'
 }
 
 onMounted(() => {
-  fetchData()
-  window.addEventListener('resize', handleResize)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('resize', handleResize)
-  expenseChart?.dispose()
-  incomeChart?.dispose()
-  trendChartInstance?.dispose()
+  fetchTrips()
 })
 </script>
-
-<style scoped>
-.statistics {
-  padding: 0;
-}
-
-.page-header {
-  margin-bottom: 24px;
-}
-
-.filter-card {
-  margin-bottom: 24px;
-}
-
-.summary-cards {
-  margin-bottom: 24px;
-}
-
-.stat-card {
-  background: #fff;
-  border-radius: 16px;
-  padding: 24px;
-  display: flex;
-  align-items: center;
-  box-shadow: var(--shadow-md);
-  transition: all 0.3s ease;
-  cursor: pointer;
-}
-
-.stat-card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-lg);
-}
-
-.card-icon {
-  width: 72px;
-  height: 72px;
-  border-radius: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 20px;
-  flex-shrink: 0;
-}
-
-.income-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
-.income-card .card-icon {
-  background: rgba(255, 255, 255, 0.2);
-  color: #fff;
-}
-
-.income-card .card-content {
-  color: #fff;
-}
-
-.expense-card {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-}
-
-.expense-card .card-icon {
-  background: rgba(255, 255, 255, 0.2);
-  color: #fff;
-}
-
-.expense-card .card-content {
-  color: #fff;
-}
-
-.balance-card {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-}
-
-.balance-card .card-icon {
-  background: rgba(255, 255, 255, 0.2);
-  color: #fff;
-}
-
-.balance-card .card-content {
-  color: #fff;
-}
-
-.card-content {
-  flex: 1;
-}
-
-.card-content .label {
-  font-size: 14px;
-  opacity: 0.9;
-  margin-bottom: 8px;
-}
-
-.card-content .value {
-  font-size: 32px;
-  font-weight: 700;
-}
-
-.charts-row {
-  margin-bottom: 24px;
-}
-
-.chart-card {
-  height: 100%;
-}
-
-.card-header {
-  display: flex;
-  align-items: center;
-  font-weight: 600;
-}
-</style>
