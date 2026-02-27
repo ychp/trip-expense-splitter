@@ -9,6 +9,7 @@ from app.models.wallet import Wallet
 from app.models.category import Category
 from app.models.member import Member
 from app.schemas.transaction import TransactionCreate, TransactionUpdate, TransactionResponse
+from app.services.stats_service import StatsService
 
 router = APIRouter()
 
@@ -79,23 +80,18 @@ def create_transaction(transaction: TransactionCreate, db: Session = Depends(get
     db.commit()
     db.refresh(db_transaction)
     
-    # 重新查询以获取关联数据
-    db_transaction = db.query(Transaction).options(
-        joinedload(Transaction.wallet),
-        joinedload(Transaction.category),
-        joinedload(Transaction.trip)
-    ).filter(Transaction.id == db_transaction.id).first()
+    # 更新统计数据
+    try:
+        StatsService.update_all_stats(db_transaction.trip_id, db)
+    except Exception as e:
+        print(f"Warning: Failed to update stats: {e}")
     
     return db_transaction
 
 
 @router.get("/{transaction_id}", response_model=TransactionResponse)
 def get_transaction(transaction_id: int, db: Session = Depends(get_db)):
-    transaction = db.query(Transaction).options(
-        joinedload(Transaction.wallet),
-        joinedload(Transaction.category),
-        joinedload(Transaction.trip)
-    ).filter(Transaction.id == transaction_id).first()
+    transaction = db.query(Transaction).filter(Transaction.id == transaction_id).first()
     
     if not transaction:
         raise HTTPException(status_code=404, detail="支出明细不存在")
@@ -120,12 +116,11 @@ def update_transaction(transaction_id: int, transaction: TransactionUpdate, db: 
     db.commit()
     db.refresh(db_transaction)
     
-    # 重新查询以获取关联数据
-    db_transaction = db.query(Transaction).options(
-        joinedload(Transaction.wallet),
-        joinedload(Transaction.category),
-        joinedload(Transaction.trip)
-    ).filter(Transaction.id == db_transaction.id).first()
+    # 更新统计数据
+    try:
+        StatsService.update_all_stats(db_transaction.trip_id, db)
+    except Exception as e:
+        print(f"Warning: Failed to update stats: {e}")
     
     return db_transaction
 
@@ -136,6 +131,14 @@ def delete_transaction(transaction_id: int, db: Session = Depends(get_db)):
     if not db_transaction:
         raise HTTPException(status_code=404, detail="支出明细不存在")
     
+    trip_id = db_transaction.trip_id
     db.delete(db_transaction)
     db.commit()
+    
+    # 更新统计数据
+    try:
+        StatsService.update_all_stats(trip_id, db)
+    except Exception as e:
+        print(f"Warning: Failed to update stats: {e}")
+    
     return {"message": "支出明细已删除"}
