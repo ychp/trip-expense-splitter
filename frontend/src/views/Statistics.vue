@@ -151,13 +151,12 @@ const loading = ref(false)
 const fetchTrips = async () => {
   try {
     console.log('📡 Statistics: Fetching trips...')
-    const { data } = await axios.get('http://localhost:8000/api/trips/')
+    const data = await apiClient.trips.list()
     console.log('✅ Statistics: Trips received:', data)
     trips.value = data
     if (trips.value.length > 0) {
       selectedTripId.value = trips.value[0].id
       console.log('✅ Statistics: Selected trip:', selectedTripId.value)
-      // 手动调用fetchStats，因为@change事件不会在代码设置值时触发
       await fetchStats()
     }
   } catch (error) {
@@ -171,14 +170,14 @@ const fetchStats = async () => {
   loading.value = true
   try {
     console.log('📡 Statistics: Fetching stats for trip:', selectedTripId.value)
-    const [statsRes, walletRes] = await Promise.all([
-      axios.get(`http://localhost:8000/api/stats/per-person/${selectedTripId.value}`),
-      axios.get(`http://localhost:8000/api/stats/wallet-summary/${selectedTripId.value}`)
+    const [statsData, walletData] = await Promise.all([
+      apiClient.stats.perPerson(selectedTripId.value),
+      apiClient.stats.walletSummary(selectedTripId.value)
     ])
-    console.log('✅ Statistics: Stats data received:', statsRes.data)
-    console.log('✅ Statistics: Wallet summary received:', walletRes.data)
-    stats.value = statsRes.data
-    walletSummary.value = walletRes.data
+    console.log('✅ Statistics: Stats data received:', statsData)
+    console.log('✅ Statistics: Wallet summary received:', walletData)
+    stats.value = statsData
+    walletSummary.value = walletData
   } catch (error) {
     console.error('❌ Statistics: 获取统计数据失败', error)
     ElMessage.error('获取统计数据失败')

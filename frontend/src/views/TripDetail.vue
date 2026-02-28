@@ -406,7 +406,7 @@ const getCategoryColor = (category) => {
 
 const fetchTrip = async () => {
   try {
-    const { data } = await axios.get(`http://localhost:8000/api/trips/${tripId.value}`)
+    const data = await apiClient.trips.get(tripId.value)
     trip.value = data
     Object.assign(editForm.value, {
       name: data.name,
@@ -422,7 +422,7 @@ const fetchTrip = async () => {
 
 const fetchMembers = async () => {
   try {
-    const { data } = await axios.get(`http://localhost:8000/api/members/trip/${tripId.value}`)
+    const data = await apiClient.members.listByTrip(tripId.value)
     members.value = data
     data.forEach(m => {
       if (!(m.id in walletForm.value.ownership)) {
@@ -437,7 +437,7 @@ const fetchMembers = async () => {
 const fetchWallets = async () => {
   try {
     console.log('📡 Fetching wallets for trip:', tripId.value)
-    const { data } = await axios.get(`http://localhost:8000/api/wallets/?trip_id=${tripId.value}`)
+    const data = await apiClient.wallets.list({ trip_id: tripId.value })
     console.log('✅ Wallets API response:', data)
     console.log('📊 Wallets count:', Array.isArray(data) ? data.length : 'Not an array')
     wallets.value = Array.isArray(data) ? data : []
@@ -449,7 +449,7 @@ const fetchWallets = async () => {
 
 const fetchTransactions = async () => {
   try {
-    const { data } = await axios.get(`http://localhost:8000/api/transactions/?trip_id=${tripId.value}`)
+    const data = await apiClient.transactions.list({ trip_id: tripId.value })
     transactions.value = data
   } catch (error) {
     ElMessage.error('获取支出记录失败')
@@ -458,7 +458,7 @@ const fetchTransactions = async () => {
 
 const fetchStats = async () => {
   try {
-    const { data } = await axios.get(`http://localhost:8000/api/stats/per-person/${tripId.value}`)
+    const data = await apiClient.stats.perPerson(tripId.value)
     stats.value = data
   } catch (error) {
     ElMessage.error('获取统计数据失败')
@@ -474,7 +474,7 @@ const handleUpdateTrip = async () => {
     if (!valid) return
     
     try {
-      await axios.put(`http://localhost:8000/api/trips/${tripId.value}`, editForm.value)
+      await apiClient.trips.update(tripId.value, editForm.value)
       ElMessage.success('行程更新成功')
       editDialogVisible.value = false
       fetchTrip()
@@ -506,7 +506,7 @@ const handleWalletAction = async (command, wallet) => {
         cancelButtonText: '取消',
         type: 'warning'
       })
-      await axios.delete(`http://localhost:8000/api/wallets/${wallet.id}`)
+      await apiClient.wallets.delete(wallet.id)
       ElMessage.success('删除成功')
       fetchWallets()
     } catch (error) {
@@ -536,10 +536,10 @@ const handleWalletSubmit = async () => {
       }
       
       if (editingWallet.value) {
-        await axios.put(`http://localhost:8000/api/wallets/${editingWallet.value.id}`, payload)
+        await apiClient.wallets.update(editingWallet.value.id, payload)
         ElMessage.success('钱包更新成功')
       } else {
-        await axios.post('http://localhost:8000/api/wallets/', payload)
+        await apiClient.wallets.create(payload)
         ElMessage.success('钱包创建成功')
       }
       walletDialogVisible.value = false

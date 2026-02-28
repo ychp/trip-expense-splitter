@@ -3,12 +3,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from app.core.config import settings
+from app.core.logging import setup_logging, get_logger
 from app.api import categories, transactions, trips, members, wallets, stats, wallet_flows, reconciliation
+
+logger = get_logger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    setup_logging(log_dir=settings.DATA_DIR)
+    logger.info("Application starting up...")
     yield
+    logger.info("Application shutting down...")
 
 
 app = FastAPI(
@@ -20,7 +26,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:5173", "http://localhost:5174"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

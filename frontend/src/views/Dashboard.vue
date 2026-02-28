@@ -127,7 +127,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Plus, Location, Calendar, Wallet } from '@element-plus/icons-vue'
-import axios from 'axios'
+import { apiClient } from '@/api/client'
 
 const router = useRouter()
 const trips = ref([])
@@ -169,7 +169,7 @@ const formatDateRange = (start, end) => {
 
 const fetchTrips = async () => {
   try {
-    const { data } = await axios.get('http://localhost:8000/api/trips/')
+    const data = await apiClient.trips.list()
     trips.value = data
     await fetchTripsStats()
   } catch (error) {
@@ -180,7 +180,7 @@ const fetchTrips = async () => {
 const fetchTripsStats = async () => {
   for (const trip of activeTrips.value) {
     try {
-      const { data } = await axios.get(`http://localhost:8000/api/stats/per-person/${trip.id}`)
+      const data = await apiClient.stats.perPerson(trip.id)
       tripStats.value[trip.id] = {
         total_expense: data.total_expense.toFixed(2),
         average_expense: data.average_expense.toFixed(2),
@@ -194,9 +194,7 @@ const fetchTripsStats = async () => {
 
 const fetchRecentTransactions = async () => {
   try {
-    const { data } = await axios.get('http://localhost:8000/api/transactions/', {
-      params: { limit: 5 }
-    })
+    const data = await apiClient.transactions.list({ limit: 5 })
     recentTransactions.value = data.slice(0, 5)
   } catch (error) {
     console.error('Failed to fetch recent transactions')

@@ -120,7 +120,7 @@ const rules = {
 
 const fetchTrips = async () => {
   try {
-    const { data } = await axios.get('http://localhost:8000/api/trips/')
+    const data = await apiClient.trips.list()
     trips.value = data
   } catch (error) {
     ElMessage.error('获取行程列表失败')
@@ -133,13 +133,13 @@ const handleSubmit = async () => {
     
     try {
       if (editingTrip.value) {
-        await axios.put(`http://localhost:8000/api/trips/${editingTrip.value.id}`, form.value)
+        await apiClient.trips.update(editingTrip.value.id, form.value)
         ElMessage.success('行程更新成功')
       } else {
         const members = form.value.members
         delete form.value.members
         
-        const { data: trip } = await axios.post('http://localhost:8000/api/trips/', form.value)
+        const trip = await apiClient.trips.create(form.value)
         
         if (members && members.trim()) {
           const memberNames = members
@@ -149,7 +149,7 @@ const handleSubmit = async () => {
           
           if (memberNames.length > 0) {
             const memberPromises = memberNames.map(name =>
-              axios.post('http://localhost:8000/api/members/', {
+              apiClient.members.create({
                 name,
                 trip_id: trip.id
               })
@@ -187,7 +187,7 @@ const handleAction = async (command, trip) => {
         cancelButtonText: '取消',
         type: 'warning'
       })
-      await axios.delete(`http://localhost:8000/api/trips/${trip.id}`)
+      await apiClient.trips.delete(trip.id)
       ElMessage.success('删除成功')
       fetchTrips()
     } catch (error) {

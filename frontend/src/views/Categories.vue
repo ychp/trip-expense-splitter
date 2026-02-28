@@ -149,7 +149,7 @@ const getCategoryIcon = (category) => {
 
 const fetchData = async () => {
   try {
-    tableData.value = await getCategories()
+    tableData.value = await apiClient.categories.list()
   } catch (error) {
     ElMessage.error('获取分类列表失败')
   }
@@ -183,7 +183,7 @@ const handleDelete = (row) => {
     type: 'warning'
   }).then(async () => {
     try {
-      await deleteCategory(row.id)
+      await apiClient.categories.delete(row.id)
       ElMessage.success('删除成功')
       fetchData()
     } catch (error) {
@@ -196,10 +196,10 @@ const handleSubmit = async () => {
   await formRef.value.validate()
   try {
     if (isEdit.value) {
-      await updateCategory(form.id, form)
+      await apiClient.categories.update(form.id, form)
       ElMessage.success('更新成功')
     } else {
-      await createCategory(form)
+      await apiClient.categories.create(form)
       ElMessage.success('添加成功')
     }
     dialogVisible.value = false

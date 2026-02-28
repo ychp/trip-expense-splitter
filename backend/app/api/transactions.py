@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Optional
 
 from app.core.database import get_db
+from app.core.logging import get_logger
 from app.models.transaction import Transaction
 from app.models.wallet import Wallet
 from app.models.category import Category
@@ -12,6 +13,7 @@ from app.schemas.transaction import TransactionCreate, TransactionUpdate, Transa
 from app.services.stats_service import StatsService
 
 router = APIRouter()
+logger = get_logger(__name__)
 
 
 @router.get("/", response_model=list[TransactionResponse])
@@ -40,11 +42,22 @@ def list_transactions(
     
     transactions = query.order_by(Transaction.transaction_date.desc()).offset(skip).limit(limit).all()
     
+    if not transactions:
+        return []
+    
+    wallet_ids = list({t.wallet_id for t in transactions})
+    category_ids = list({t.category_id for t in transactions if t.category_id})
+    payer_ids = list({t.payer_id for t in transactions if t.payer_id})
+    
+    wallets_map = {w.id: w for w in db.query(Wallet).filter(Wallet.id.in_(wallet_ids)).all()}
+    categories_map = {c.id: c for c in db.query(Category).filter(Category.id.in_(category_ids)).all()}
+    payers_map = {p.id: p for p in db.query(Member).filter(Member.id.in_(payer_ids)).all()}
+    
     result = []
     for txn in transactions:
-        wallet = db.query(Wallet).filter(Wallet.id == txn.wallet_id).first()
-        category = db.query(Category).filter(Category.id == txn.category_id).first()
-        payer = db.query(Member).filter(Member.id == txn.payer_id).first()
+        wallet = wallets_map.get(txn.wallet_id)
+        category = categories_map.get(txn.category_id) if txn.category_id else None
+        payer = payers_map.get(txn.payer_id) if txn.payer_id else None
         
         result.append({
             "id": txn.id,

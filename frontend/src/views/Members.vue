@@ -61,7 +61,7 @@ const rules = {
 
 const fetchMembers = async () => {
   try {
-    const { data } = await axios.get(`http://localhost:8000/api/members/trip/${props.tripId}`)
+    const data = await apiClient.members.listByTrip(props.tripId)
     members.value = data
     emit('update', data)
   } catch (error) {
@@ -74,7 +74,7 @@ const handleSubmit = async () => {
     if (!valid) return
     
     try {
-      await axios.post('http://localhost:8000/api/members/', form.value)
+      await apiClient.members.create(form.value)
       ElMessage.success('成员添加成功')
       dialogVisible.value = false
       form.value.name = ''
@@ -92,7 +92,7 @@ const handleDelete = async (member) => {
       cancelButtonText: '取消',
       type: 'warning'
     })
-    await axios.delete(`http://localhost:8000/api/members/${member.id}`)
+    await apiClient.members.delete(member.id)
     ElMessage.success('删除成功')
     fetchMembers()
   } catch (error) {

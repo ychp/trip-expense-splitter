@@ -151,7 +151,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import axios from 'axios'
+import { apiClient } from '@/api/client'
 
 const queryForm = reactive({
   trip_id: null
@@ -201,7 +201,7 @@ const customRatioTotal = computed(() => {
 
 const fetchTrips = async () => {
   try {
-    const { data } = await axios.get('http://localhost:8000/api/trips/')
+    const data = await apiClient.trips.list()
     trips.value = data
     if (trips.value.length > 0) {
       queryForm.trip_id = trips.value[0].id
@@ -213,7 +213,7 @@ const fetchTrips = async () => {
 
 const fetchWallets = async () => {
   try {
-    const { data } = await axios.get('http://localhost:8000/api/wallets/')
+    const data = await apiClient.wallets.list()
     wallets.value = data
   } catch (error) {
     ElMessage.error('获取钱包列表失败')
@@ -223,7 +223,7 @@ const fetchWallets = async () => {
 const fetchMembers = async () => {
   if (!queryForm.trip_id) return
   try {
-    const { data } = await axios.get(`http://localhost:8000/api/members/trip/${queryForm.trip_id}`)
+    const data = await apiClient.members.listByTrip(queryForm.trip_id)
     members.value = data
   } catch (error) {
     ElMessage.error('获取成员列表失败')
@@ -232,7 +232,7 @@ const fetchMembers = async () => {
 
 const fetchCategories = async () => {
   try {
-    const { data } = await axios.get('http://localhost:8000/api/categories/')
+    const data = await apiClient.categories.list()
     categories.value = data
   } catch (error) {
     ElMessage.error('获取分类列表失败')
@@ -247,7 +247,7 @@ const fetchData = async () => {
       start_date: dateRange.value?.[0],
       end_date: dateRange.value?.[1]
     }
-    const { data } = await axios.get('http://localhost:8000/api/transactions/', { params })
+    const data = await apiClient.transactions.list(params)
     tableData.value = data
   } catch (error) {
     ElMessage.error('获取数据失败')
@@ -297,7 +297,7 @@ const handleDelete = (row) => {
     type: 'warning'
   }).then(async () => {
     try {
-      await axios.delete(`http://localhost:8000/api/transactions/${row.id}`)
+      await apiClient.transactions.delete(row.id)
       ElMessage.success('删除成功')
       fetchData()
     } catch (error) {
@@ -356,10 +356,8 @@ const handleSubmit = async () => {
   await formRef.value.validate(async (valid) => {
     if (!valid) return
     
-    // 处理自定义比例
     let payload = { ...form }
     if (form.split_method === 'custom') {
-      // 过滤掉比例为0的成员
       const ratios = {}
       for (const [memberId, ratio] of Object.entries(form.split_ratios)) {
         if (ratio > 0) {
@@ -374,10 +372,10 @@ const handleSubmit = async () => {
     
     try {
       if (isEdit.value) {
-        await axios.put(`http://localhost:8000/api/transactions/${form.id}`, payload)
+        await apiClient.transactions.update(form.id, payload)
         ElMessage.success('更新成功')
       } else {
-        await axios.post('http://localhost:8000/api/transactions/', payload)
+        await apiClient.transactions.create(payload)
         ElMessage.success('添加成功')
       }
       dialogVisible.value = false

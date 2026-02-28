@@ -96,7 +96,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import axios from 'axios'
+import { apiClient } from '@/api/client'
 
 const trips = ref([])
 const members = ref([])
@@ -132,13 +132,12 @@ const totalBalance = (wallet) => {
 const fetchTrips = async () => {
   try {
     console.log('📡 Fetching trips...')
-    const { data } = await axios.get('http://localhost:8000/api/trips/')
+    const data = await apiClient.trips.list()
     console.log('✅ Trips received:', data)
     trips.value = data
     if (trips.value.length > 0) {
       selectedTripId.value = trips.value[0].id
       console.log('✅ Selected trip:', selectedTripId.value)
-      // 手动调用fetchWallets，因为@change事件不会在代码设置值时触发
       await fetchWallets()
     }
   } catch (error) {
@@ -150,7 +149,7 @@ const fetchTrips = async () => {
 const fetchMembers = async () => {
   if (!selectedTripId.value) return
   try {
-    const { data } = await axios.get(`http://localhost:8000/api/members/trip/${selectedTripId.value}`)
+    const data = await apiClient.members.listByTrip(selectedTripId.value)
     members.value = data
   } catch (error) {
     console.error('获取成员列表失败')
@@ -161,7 +160,7 @@ const fetchWallets = async () => {
   if (!selectedTripId.value) return
   try {
     console.log('📡 Fetching wallets for trip:', selectedTripId.value)
-    const { data } = await axios.get(`http://localhost:8000/api/wallets/?trip_id=${selectedTripId.value}`)
+    const data = await apiClient.wallets.list({ trip_id: selectedTripId.value })
     console.log('✅ Wallets received:', data)
     console.log('📊 Wallets count:', Array.isArray(data) ? data.length : 'Not an array')
     wallets.value = Array.isArray(data) ? data : []
@@ -176,7 +175,6 @@ const handleSubmit = async () => {
   await formRef.value.validate(async (valid) => {
     if (!valid) return
     
-    // 过滤掉余额为0的成员
     const balance_by_member = {}
     for (const [memberId, balance] of Object.entries(form.value.balance_by_member)) {
       if (balance > 0) {
@@ -192,10 +190,10 @@ const handleSubmit = async () => {
       }
       
       if (editingWallet.value) {
-        await axios.put(`http://localhost:8000/api/wallets/${editingWallet.value.id}`, payload)
+        await apiClient.wallets.update(editingWallet.value.id, payload)
         ElMessage.success('钱包更新成功')
       } else {
-        await axios.post('http://localhost:8000/api/wallets/', payload)
+        await apiClient.wallets.create(payload)
         ElMessage.success('钱包创建成功')
       }
       dialogVisible.value = false
@@ -228,7 +226,7 @@ const handleAction = async (command, wallet) => {
         cancelButtonText: '取消',
         type: 'warning'
       })
-      await axios.delete(`http://localhost:8000/api/wallets/${wallet.id}`)
+      await apiClient.wallets.delete(wallet.id)
       ElMessage.success('删除成功')
       fetchWallets()
     } catch (error) {
